@@ -15,12 +15,13 @@ class GlobalAttention(keras.layers.Layer):
     '''
     
     def __init__(self, n_heads, d_key, d_value, **kwargs):
+        super().__init__(**kwargs)
         self.n_heads = n_heads
         self.d_key = d_key
         self.sqrt_d_key = np.sqrt(self.d_key)
         self.d_value = d_value
         self.d_output = n_heads * d_value
-        super(GlobalAttention, self).__init__(**kwargs)
+        
     
     def get_config(self):
         config = super().get_config().copy()
