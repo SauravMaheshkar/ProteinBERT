@@ -21,6 +21,17 @@ class GlobalAttention(keras.layers.Layer):
         self.d_value = d_value
         self.d_output = n_heads * d_value
         super(GlobalAttention, self).__init__(**kwargs)
+    
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'n_heads': self.n_heads,
+            'd_key': self.d_key,
+            'sqrt_d_key': self.sqrt_d_key,
+            'd_value': self.d_value,
+            'd_output': self.d_output
+        })
+        return config
         
     def compute_output_shape(self, input_shapes):
         # input_shapes: (batch_size, d_global_input), (batch_size, length, d_seq_input)
