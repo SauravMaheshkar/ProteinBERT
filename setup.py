@@ -1,16 +1,14 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
-    name = 'protein-bert-tfgpu',
-    packages = ['proteinbert', 'proteinbert.shared_utils'],
+    name = 'protein-bert-jax',
+    packages = find_packages(),
+    url = "https://github.com/SauravMaheshkar/ProteinBERT",
     license = 'MIT',
     install_requires = [
-        'tensorflow',
-        'tensorflow_addons',
-        'numpy',
-        'pandas',
-        'h5py',
-        'lxml',
-        'pyfaidx',
+        'einops>=0.3',
+        'flax',
+        'jax',
+        'jaxlib'
     ],
 )
