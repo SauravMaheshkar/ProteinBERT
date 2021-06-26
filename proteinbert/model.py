@@ -4,8 +4,8 @@ import jax.numpy as jnp
 from chex import Array
 from einops import rearrange
 from flax import linen as nn
-from layers import Layer
-from utils import Reduce, Sequential
+from proteinbert.layers import Layer
+from proteinbert.utils import Reduce, Sequential
 
 Dtype = Any
 

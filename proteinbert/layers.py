@@ -1,11 +1,11 @@
 from typing import Any, Sequence
 
 import jax.numpy as jnp
-from attention import CrossAttention, GlobalLinearSelfAttention
+from proteinbert.attention import CrossAttention, GlobalLinearSelfAttention
 from chex import Array
 from einops import rearrange
 from flax import linen as nn
-from utils import Rearrange, Reduce, Residual, Sequential
+from proteinbert.utils import Rearrange, Reduce, Residual, Sequential
 
 Dtype = Any
 
