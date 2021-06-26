@@ -26,7 +26,7 @@ readme = read("README.md")
 VERSION = find_version("proteinbert", "__init__.py")
 
 setup(
-    name="protein-bert-jax",
+    name="proteinbert-jax",
     version=VERSION,
     packages=find_packages(),
     url="https://github.com/SauravMaheshkar/ProteinBERT",
