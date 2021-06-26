@@ -1,0 +1,98 @@
+import functools
+from typing import Sequence
+
+from einops.einops import EinopsError, TransformRecipe, _prepare_transformation_recipe
+from flax import linen as nn
+
+__all__ = ["Sequential", "Residual", "Rearrange", "Reduce"]
+
+
+class Sequential(nn.Module):
+    layers: Sequence[nn.Module]
+
+    def __call__(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+
+class Residual(nn.Module):
+    layers: Sequence[nn.Module]
+
+    def __call__(self, x):
+        for layer in self.layers:
+            x = layer(x) + x
+        return x
+
+
+class RearrangeMixin:
+    """
+    From einops/einops/layers/__init__.py 
+    """
+
+    def __init__(self, pattern, **axes_lengths):
+        super().__init__()
+        self.pattern = pattern
+        self.axes_lengths = axes_lengths
+        self._recipe = self.recipe()  # checking parameters
+
+    def __repr__(self):
+        params = repr(self.pattern)
+        for axis, length in self.axes_lengths.items():
+            params += ", {}={}".format(axis, length)
+        return "{}({})".format(self.__class__.__name__, params)
+
+    @functools.lru_cache(maxsize=1024)
+    def recipe(self) -> TransformRecipe:
+        try:
+            hashable_lengths = tuple(sorted(self.axes_lengths.items()))
+            return _prepare_transformation_recipe(
+                self.pattern, operation="rearrange", axes_lengths=hashable_lengths
+            )
+        except EinopsError as e:
+            raise EinopsError(" Error while preparing {!r}\n {}".format(self, e))
+
+    def _apply_recipe(self, x):
+        return self._recipe.apply(x)
+
+
+class ReduceMixin:
+    """
+    From einops/einops/layers/__init__.py 
+    """
+
+    def __init__(self, pattern, reduction, **axes_lengths):
+        super().__init__()
+        self.pattern = pattern
+        self.reduction = reduction
+        self.axes_lengths = axes_lengths
+        self._recipe = self.recipe()  # checking parameters
+
+    def __repr__(self):
+        params = "{!r}, {!r}".format(self.pattern, self.reduction)
+        for axis, length in self.axes_lengths.items():
+            params += ", {}={}".format(axis, length)
+        return "{}({})".format(self.__class__.__name__, params)
+
+    @functools.lru_cache(maxsize=1024)
+    def recipe(self) -> TransformRecipe:
+        try:
+            hashable_lengths = tuple(sorted(self.axes_lengths.items()))
+            return _prepare_transformation_recipe(
+                self.pattern, operation=self.reduction, axes_lengths=hashable_lengths
+            )
+        except EinopsError as e:
+            raise EinopsError(" Error while preparing {!r}\n {}".format(self, e))
+
+    def _apply_recipe(self, x):
+        return self._recipe.apply(x)
+
+
+class Rearrange(RearrangeMixin, nn.Module):
+    def __call__(self, input):
+        return self._apply_recipe(input)
+
+
+class Reduce(ReduceMixin, nn.Module):
+    def __call__(self, input):
+        return self._apply_recipe(input)
