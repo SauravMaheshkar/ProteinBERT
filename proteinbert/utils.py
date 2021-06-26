@@ -8,6 +8,13 @@ __all__ = ["Sequential", "Residual", "Rearrange", "Reduce"]
 
 
 class Sequential(nn.Module):
+    """
+    Flax Module to act as a wrapper for creating Sequential Modules
+
+    Attributes:
+        layers: A Sequence of Flax Modules
+    """
+
     layers: Sequence[nn.Module]
 
     def __call__(self, x):
@@ -17,6 +24,12 @@ class Sequential(nn.Module):
 
 
 class Residual(nn.Module):
+    """
+    Flax Module to act as a wrapper for creating Residual Modules
+
+    Attributes:
+        layers: A Sequence of Flax Modules
+    """
     layers: Sequence[nn.Module]
 
     def __call__(self, x):
@@ -89,10 +102,16 @@ class ReduceMixin:
 
 
 class Rearrange(RearrangeMixin, nn.Module):
+    """
+    Flax Module to act as a Rearrange layer (from einops)
+    """
     def __call__(self, input):
         return self._apply_recipe(input)
 
 
 class Reduce(ReduceMixin, nn.Module):
+    """
+    Flax Module to act as a Reduce layer (from einops)
+    """
     def __call__(self, input):
         return self._apply_recipe(input)
