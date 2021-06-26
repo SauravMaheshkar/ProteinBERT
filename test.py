@@ -12,7 +12,7 @@ def test():
         key=random.PRNGKey(0), minval=0, maxval=1, shape=(2, 8943)
     )
 
-    init_rngs = {"params": random.PRNGKey(0), "dropout": random.PRNGKey(1)}
+    init_rngs = {"params": random.PRNGKey(0), "layers": random.PRNGKey(1)}
 
     ProteinBERT().init(init_rngs, seq, annotation)
 
