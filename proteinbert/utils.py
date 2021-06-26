@@ -30,6 +30,7 @@ class Residual(nn.Module):
     Attributes:
         layers: A Sequence of Flax Modules
     """
+
     layers: Sequence[nn.Module]
 
     def __call__(self, x):
@@ -105,6 +106,7 @@ class Rearrange(RearrangeMixin, nn.Module):
     """
     Flax Module to act as a Rearrange layer (from einops)
     """
+
     def __call__(self, input):
         return self._apply_recipe(input)
 
@@ -113,5 +115,6 @@ class Reduce(ReduceMixin, nn.Module):
     """
     Flax Module to act as a Reduce layer (from einops)
     """
+
     def __call__(self, input):
         return self._apply_recipe(input)
