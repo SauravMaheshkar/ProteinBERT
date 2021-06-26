@@ -37,7 +37,7 @@ class Layer(nn.Module):
     wide_conv_dilation: int = 5
     attn_heads: int = 8
     attn_dim_head: int = 64
-    attn_qk_activation = nn.activation.tanh()
+    attn_qk_activation = nn.activation.tanh
     local_to_global_attn: bool = False
     local_self_attn: bool = False
     glu_conv: bool = False

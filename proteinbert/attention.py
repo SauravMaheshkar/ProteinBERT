@@ -26,7 +26,7 @@ class GlobalLinearSelfAttention(nn.Module):
     dim_head: int
     heads: int
     dtype: Dtype = jnp.float32
-    kernel_init = nn.initializers.lecun_normal()
+    kernel_init = nn.initializers.lecun_normal
     bias_init = nn.initializers.zeros
 
     @nn.compact
@@ -81,9 +81,9 @@ class CrossAttention(nn.Module):
     dim_out: int
     heads: int
     dim_head: int = 64
-    qk_activation = nn.activation.tanh()
+    qk_activation = nn.activation.tanh
     dtype: Dtype = jnp.float32
-    kernel_init = nn.initializers.lecun_normal()
+    kernel_init = nn.initializers.lecun_normal
     bias_init = nn.initializers.zeros
 
     @nn.compact
