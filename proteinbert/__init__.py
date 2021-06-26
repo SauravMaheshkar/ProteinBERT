@@ -1,6 +1,6 @@
-from attention import *
-from layers import *
-from model import ProteinBERT
-from utils import *
+from proteinbert.attention import *
+from proteinbert.layers import *
+from proteinbert.model import ProteinBERT
+from proteinbert.utils import *
 
 __version__ = "0.0.1"
