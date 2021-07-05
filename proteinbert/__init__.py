@@ -1,6 +1,6 @@
-from proteinbert.attention import *
-from proteinbert.layers import *
-from proteinbert.model import ProteinBERT
-from proteinbert.utils import *
+from .attention import *  # noqa
+from .layers import *  # noqa
+from .model import ProteinBERT  # noqa
+from .utils import *  # noqa
 
 __version__ = "0.0.1"

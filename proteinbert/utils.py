@@ -1,10 +1,39 @@
 import functools
 from typing import Sequence
 
+import jax.numpy as jnp
+import numpy as np
+from chex import Array
 from einops.einops import EinopsError, TransformRecipe, _prepare_transformation_recipe
 from flax import linen as nn
+from jax import lax
+from jax.scipy.special import expit
 
-__all__ = ["Sequential", "Residual", "Rearrange", "Reduce"]
+__all__ = ["Sequential", "Residual", "Rearrange", "Reduce", "gelu", "glu"]
+
+
+class gelu(nn.Module):
+    approximate: bool = True
+
+    @nn.compact
+    def __call__(self, x) -> Array:
+        if self.approximate:
+            sqrt_2_over_pi = np.sqrt(2 / np.pi).astype(x.dtype)
+            cdf = 0.5 * (1.0 + jnp.tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
+            return x * cdf
+        else:
+            return jnp.array(x * (lax.erf(x / np.sqrt(2)) + 1) / 2, dtype=x.dtype)
+
+
+class glu(nn.Module):
+    axis: int = -1
+
+    @nn.compact
+    def __call__(self, x) -> Array:
+        size = x.shape[self.axis]
+        assert size % 2 == 0, "axis size must be divisible by 2"
+        x1, x2 = jnp.split(x, 2, self.axis)
+        return x1 * expit(x2)
 
 
 class Sequential(nn.Module):
@@ -17,6 +46,7 @@ class Sequential(nn.Module):
 
     layers: Sequence[nn.Module]
 
+    @nn.compact
     def __call__(self, x):
         for layer in self.layers:
             x = layer(x)
@@ -33,6 +63,7 @@ class Residual(nn.Module):
 
     layers: Sequence[nn.Module]
 
+    @nn.compact
     def __call__(self, x):
         for layer in self.layers:
             x = layer(x) + x
@@ -102,19 +133,27 @@ class ReduceMixin:
         return self._recipe.apply(x)
 
 
-class Rearrange(RearrangeMixin, nn.Module):
+class Rearrange(nn.Module):
     """
     Flax Module to act as a Rearrange layer (from einops)
     """
 
+    pattern: str
+
+    def setup(self):
+        self.rearranger = RearrangeMixin(self.pattern)
+
+    @nn.compact
     def __call__(self, input):
-        return self._apply_recipe(input)
+        return self.rearranger._apply_recipe(input)
 
 
-class Reduce(ReduceMixin, nn.Module):
-    """
-    Flax Module to act as a Reduce layer (from einops)
-    """
+class Reduce(nn.Module):
+    pattern: str
+    reduction: str
+
+    def setup(self):
+        self.reducer = ReduceMixin(self.pattern, self.reduction)
 
     def __call__(self, input):
-        return self._apply_recipe(input)
+        return self.reducer._apply_recipe(input)

@@ -1,11 +1,12 @@
 from typing import Any, Sequence
 
 import jax.numpy as jnp
-from proteinbert.attention import CrossAttention, GlobalLinearSelfAttention
 from chex import Array
 from einops import rearrange
 from flax import linen as nn
-from proteinbert.utils import Rearrange, Reduce, Residual, Sequential
+
+from .attention import CrossAttention, GlobalLinearSelfAttention
+from .utils import Rearrange, Reduce, Residual, Sequential, gelu, glu
 
 Dtype = Any
 
@@ -23,7 +24,6 @@ class Layer(nn.Module):
         wide_conv_dilation: kernel dilation
         attn_heads: number of attention heads
         attn_dim_head: dimensionality for the attention heads
-        attn_qk_activation: Activation function for Querys and Keys in the Cross Attention Module
         local_to_global_attn: (bool) whether to use Local to Global Attention
         local_self_attn: (bool) whether to use Local Self Attention
         glu_conv: (bool) whether to use glu
@@ -37,7 +37,6 @@ class Layer(nn.Module):
     wide_conv_dilation: int = 5
     attn_heads: int = 8
     attn_dim_head: int = 64
-    attn_qk_activation: Any = nn.activation.tanh
     local_to_global_attn: bool = False
     local_self_attn: bool = False
     glu_conv: bool = False
@@ -56,13 +55,15 @@ class Layer(nn.Module):
         )
 
         self.narrow_conv = Sequential(
-            nn.Conv(
-                featurers=self.dim,
-                kernel_size=self.narrow_conv_kernel,
-                padding=self.narrow_conv_kernel // 2,
-                dtype=self.dtype,
-            ),
-            nn.gelu() if not self.glu_conv else nn.glu(axis=1),
+            [
+                nn.Conv(
+                    features=self.dim,
+                    kernel_size=self.narrow_conv_kernel,
+                    padding=self.narrow_conv_kernel // 2,
+                    dtype=self.dtype,
+                ),
+                gelu() if not self.glu_conv else glu(axis=1),
+            ]
         )
 
         wide_conv_padding = (
@@ -71,14 +72,16 @@ class Layer(nn.Module):
         ) // 2
 
         self.wide_conv = Sequential(
-            nn.Conv(
-                features=self.dim,
-                kernel_size=self.wide_conv_kernel,
-                kernel_dilation=self.wide_conv_dilation,
-                padding=wide_conv_padding,
-                dtype=self.dtype,
-            ),
-            nn.gelu() if not self.glu_conv else nn.glu(axis=1),
+            [
+                nn.Conv(
+                    features=self.dim,
+                    kernel_size=self.wide_conv_kernel,
+                    kernel_dilation=self.wide_conv_dilation,
+                    padding=wide_conv_padding,
+                    dtype=self.dtype,
+                ),
+                gelu() if not self.glu_conv else glu(axis=1),
+            ]
         )
 
         if self.local_to_global_attn:
@@ -92,39 +95,40 @@ class Layer(nn.Module):
             )
         else:
             self.extract_global_info = Sequential(
-                Reduce("b n d -> b d", "mean"),
-                nn.Dense(self.dim, dtype=self.dtype),
-                nn.gelu(),
-                Rearrange("b d -> b () d"),
+                [
+                    Reduce("b n d -> b d", "mean"),
+                    nn.Dense(self.dim, dtype=self.dtype),
+                    gelu(),
+                    Rearrange("b d -> b () d"),
+                ]
             )
 
         self.local_norm = nn.LayerNorm()
 
         self.local_feedforward = Sequential(
-            Residual(Sequential(nn.Dense(self.dim, dtype=self.dtype), nn.gelu(),)),
-            nn.LayerNorm(dtype=self.dtype),
+            [
+                Residual([Sequential([nn.Dense(self.dim, dtype=self.dtype), gelu(),])]),
+                nn.LayerNorm(dtype=self.dtype),
+            ]
         )
 
         self.global_attend_local = CrossAttention(
-            dim=self.dim_global,
-            dim_out=self.dim_global,
-            dim_keys=self.dim,
-            heads=self.attn_heads,
-            dim_head=self.attn_dim_head,
-            qk_activation=self.attn_qk_activation,
+            dim_out=self.dim_global, heads=self.attn_heads, dim_head=self.attn_dim_head,
         )
 
         self.global_dense = Sequential(
-            nn.Dense(self.dim_global, dtype=self.dtype), nn.gelu()
+            [nn.Dense(self.dim_global, dtype=self.dtype), gelu()]
         )
 
         self.global_norm = nn.LayerNorm()
 
         self.global_feedforward = Sequential(
-            Residual(
-                Sequential(nn.Dense(self.dim_global, dtype=self.dtype), nn.gelu())
-            ),
-            nn.LayerNorm(dtype=self.dtype),
+            [
+                Residual(
+                    [Sequential([nn.Dense(self.dim_global, dtype=self.dtype), gelu()])]
+                ),
+                nn.LayerNorm(dtype=self.dtype),
+            ]
         )
 
     @nn.compact

@@ -4,8 +4,9 @@ import jax.numpy as jnp
 from chex import Array
 from einops import rearrange
 from flax import linen as nn
-from proteinbert.layers import Layer
-from proteinbert.utils import Reduce, Sequential
+
+from .layers import Layer
+from .utils import Reduce, Sequential
 
 Dtype = Any
 
@@ -26,7 +27,6 @@ class ProteinBERT(nn.Module):
         wide_conv_dilation: kernel dilation
         attn_heads: number of attention heads
         attn_dim_head: dimensionality for the attention heads
-        attn_qk_activation: Activation function for Querys and Keys in the Cross Attention Module
         local_to_global_attn: (bool) whether to use Local to Global Attention
         local_self_attn: (bool) whether to use Local Self Attention
         num_global_tokens: No of global tokens
@@ -44,7 +44,6 @@ class ProteinBERT(nn.Module):
     wide_conv_dilation: int = 5
     attn_heads: int = 8
     attn_dim_head: int = 64
-    attn_qk_activation = nn.activation.tanh
     local_to_global_attn: bool = False
     local_self_attn: bool = False
     num_global_tokens: int = 1
@@ -67,7 +66,6 @@ class ProteinBERT(nn.Module):
                 narrow_conv_kernel=self.narrow_conv_kernel,
                 wide_conv_dilation=self.wide_conv_dilation,
                 wide_conv_kernel=self.wide_conv_kernel,
-                attn_qk_activation=self.attn_qk_activation,
                 local_to_global_attn=self.local_to_global_attn,
                 local_self_attn=self.local_self_attn,
                 glu_conv=self.glu_conv,
@@ -79,8 +77,10 @@ class ProteinBERT(nn.Module):
         self.to_token_logits = nn.Dense(features=self.num_tokens, dtype=self.dtype)
 
         self.to_annotation_logits = Sequential(
-            Reduce("b n d -> b d", "mean"),
-            nn.Dense(features=self.num_annotation, dtype=self.dtype),
+            [
+                Reduce(pattern="b n d -> b d", reduction="mean"),
+                nn.Dense(features=self.num_annotation, dtype=self.dtype),
+            ]
         )
 
     def __call__(self, seq, annotation) -> Sequence[Array]:
